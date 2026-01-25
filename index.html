@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spot the Signs - Vicarious Trauma</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --brand-lavender: #C6B4D9;
+            --brand-purple: #513873;
+            --brand-deep: #413659;
+            --brand-light: #F6F5F8;
+            --brand-rose: #9C7F9D;
+            --success-green: #4ade80;
+            --error-red: #f87171;
+        }
+
+        body {
+            background-color: var(--brand-light);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            color: var(--brand-deep);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            touch-action: manipulation;
+        }
+
+        .drop-zone {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 140px;
+            border: 3px dashed var(--brand-lavender);
+            background: rgba(255, 255, 255, 0.6);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 1.5rem;
+            width: 100%;
+        }
+
+        .drop-zone.drag-over {
+            background: var(--brand-lavender);
+            transform: scale(1.03);
+            border-style: solid;
+            box-shadow: 0 10px 20px rgba(81, 56, 115, 0.1);
+        }
+
+        .draggable-card {
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: white;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px rgba(65, 54, 89, 0.12);
+            border: 2px solid white;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 300px;
+            height: 120px;
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+
+        .draggable-card:active {
+            cursor: grabbing;
+        }
+
+        .draggable-card.dragging {
+            opacity: 0.4;
+            transform: scale(0.9);
+        }
+
+        .correct-animation {
+            animation: successPulse 0.5s ease-out;
+        }
+
+        .wrong-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); background-color: var(--success-green); color: white; border-color: var(--success-green); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-12px); border-color: var(--error-red); }
+            40% { transform: translateX(12px); }
+            60% { transform: translateX(-8px); }
+            80% { transform: translateX(8px); }
+        }
+
+        #success-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(65, 54, 89, 0.96);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 1.5rem;
+        }
+
+        .modal-pop {
+            animation: modalIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .btn-reset {
+            background: var(--brand-purple);
+            color: white;
+            padding: 0.85rem 2.5rem;
+            border-radius: 9999px;
+            font-weight: 700;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        @media (max-width: 640px) {
+            .drop-zone {
+                min-height: 110px;
+            }
+            .draggable-card {
+                height: 100px;
+                font-size: 1rem;
+                padding: 1rem;
+            }
+        }
+        
+        /* Specific iPad/Tablet sizing for the bins */
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .drop-zone {
+                min-height: 160px;
+            }
+        }
+    </style>
+</head>
+<body class="overflow-x-hidden selection:bg-purple-100">
+
+    <div class="max-w-4xl w-full text-center mt-4 mb-8 px-4">
+        <h1 class="text-3xl md:text-4xl font-black uppercase mb-2 tracking-tight" style="color: var(--brand-purple);">Spot the Signs</h1>
+        <p class="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
+            Drag the cards from the bottom into the correct category at the top to classify workplace experiences.
+        </p>
+    </div>
+
+    <!-- Drop Bins (TOP) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-4xl px-4 mb-6">
+        <div id="bin-stress" class="drop-zone group touch-none">
+            <h2 class="font-bold text-lg uppercase tracking-wide opacity-70 group-hover:opacity-100 transition-opacity">Workplace Frustrations</h2>
+            <p class="text-xs text-gray-500">Common daily stressors</p>
+        </div>
+
+        <div id="bin-vt" class="drop-zone group touch-none">
+            <h2 class="font-bold text-lg uppercase tracking-wide" style="color: var(--brand-purple);">Vicarious Trauma</h2>
+            <p class="text-xs text-gray-500">Signs requiring support</p>
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="mb-10 flex flex-col items-center gap-3 w-full max-w-sm px-4">
+        <div class="flex justify-between w-full text-[10px] font-black uppercase tracking-widest opacity-50">
+            <span>Progress</span>
+            <span id="progress-percent">0%</span>
+        </div>
+        <div class="h-3 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
+            <div id="progress-bar" class="h-full bg-purple-600 transition-all duration-500 ease-out" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Active Card Display (BOTTOM) -->
+    <div class="flex flex-col items-center w-full px-4 mb-12">
+        <div class="text-xs font-bold uppercase tracking-widest opacity-40 mb-4">Current Tile</div>
+        <div id="deck-container" class="relative w-full max-w-sm h-32 flex items-center justify-center">
+            <div id="card-display" class="w-full h-full flex items-center justify-center">
+                <!-- Card injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Modal -->
+    <div id="success-modal">
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl mx-4 modal-pop overflow-y-auto max-h-[90vh]">
+            <h2 class="text-3xl md:text-4xl font-black mb-3" style="color: var(--brand-purple);">Well done!</h2>
+            <p class="text-gray-600 mb-6 md:mb-8 leading-relaxed text-sm md:text-base">You've successfully distinguished between everyday workplace frustrations and the signs of Vicarious Trauma.</p>
+            
+            <div class="bg-purple-50 p-4 md:p-5 rounded-2xl text-left mb-6 md:mb-8 border border-purple-100">
+                <h3 class="font-bold text-xs uppercase text-purple-800 mb-3 tracking-widest">Vicarious Trauma Indicators:</h3>
+                <ul id="final-list" class="text-sm space-y-2 text-purple-900 font-medium">
+                    <!-- List items injected -->
+                </ul>
+            </div>
+
+            <button onclick="location.reload()" class="btn-reset">Start Over</button>
+        </div>
+    </div>
+
+    <script>
+        const vtSigns = [
+            "Overthinking",
+            "Feeling numb",
+            "Broken trust",
+            "Avoiding teams",
+            "Always jumpy"
+        ];
+
+        const distractions = [
+            "Need coffee",
+            "Too many emails",
+            "Slow laptop",
+            "Inbox full",
+            "Roster shift"
+        ];
+
+        let deck = [];
+        let currentCardIndex = 0;
+        let stats = { stress: 0, vt: 0 };
+        let totalItems = 0;
+
+        function init() {
+            const items = [
+                ...vtSigns.map(text => ({ text, type: 'vt' })),
+                ...distractions.map(text => ({ text, type: 'stress' }))
+            ];
+            deck = items.sort(() => Math.random() - 0.5);
+            totalItems = deck.length;
+            
+            renderCard();
+            setupDropZones();
+        }
+
+        function renderCard() {
+            const display = document.getElementById('card-display');
+            display.innerHTML = '';
+            
+            if (currentCardIndex >= deck.length) {
+                showComplete();
+                return;
+            }
+
+            const item = deck[currentCardIndex];
+            const card = document.createElement('div');
+            card.className = 'draggable-card';
+            card.id = 'current-card';
+            card.draggable = true;
+            card.innerText = item.text;
+            card.dataset.type = item.type;
+
+            card.addEventListener('dragstart', (e) => {
+                card.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', item.type);
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+            });
+
+            let touchStartX, touchStartY;
+            card.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+            }, { passive: true });
+
+            card.addEventListener('touchend', (e) => {
+                const touch = e.changedTouches[0];
+                const binStress = document.getElementById('bin-stress').getBoundingClientRect();
+                const binVT = document.getElementById('bin-vt').getBoundingClientRect();
+                
+                const isOverBin = (rect) => {
+                    return touch.clientX > rect.left && 
+                           touch.clientX < rect.right && 
+                           touch.clientY > rect.top && 
+                           touch.clientY < rect.bottom;
+                };
+
+                if (isOverBin(binStress)) {
+                    handleDrop('stress');
+                } else if (isOverBin(binVT)) {
+                    handleDrop('vt');
+                }
+            });
+
+            display.appendChild(card);
+        }
+
+        function setupDropZones() {
+            const zones = [
+                { id: 'bin-stress', type: 'stress' },
+                { id: 'bin-vt', type: 'vt' }
+            ];
+
+            zones.forEach(zoneData => {
+                const zone = document.getElementById(zoneData.id);
+
+                zone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drag-over');
+                });
+
+                zone.addEventListener('dragleave', () => {
+                    zone.classList.remove('drag-over');
+                });
+
+                zone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drag-over');
+                    handleDrop(zoneData.type);
+                });
+                
+                zone.addEventListener('click', () => {
+                    handleDrop(zoneData.type);
+                });
+            });
+        }
+
+        function handleDrop(droppedType) {
+            const item = deck[currentCardIndex];
+            const cardElement = document.getElementById('current-card');
+            if (!cardElement) return;
+            
+            if (item.type === droppedType) {
+                stats[droppedType]++;
+                cardElement.classList.add('correct-animation');
+                
+                setTimeout(() => {
+                    currentCardIndex++;
+                    updateUI();
+                    renderCard();
+                }, 400);
+            } else {
+                cardElement.classList.add('wrong-animation');
+                setTimeout(() => {
+                    cardElement.classList.remove('wrong-animation');
+                }, 400);
+            }
+        }
+
+        function updateUI() {
+            const progress = (currentCardIndex / totalItems) * 100;
+            const bar = document.getElementById('progress-bar');
+            if (bar) bar.style.width = `${progress}%`;
+            const text = document.getElementById('progress-percent');
+            if (text) text.innerText = `${Math.round(progress)}%`;
+        }
+
+        function triggerConfetti() {
+            const duration = 5 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 999 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            const interval = setInterval(function() {
+              const timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              const particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount: particleCount / 2, origin: { x: 0.5, y: -0.1 } }));
+            }, 250);
+        }
+
+        function showComplete() {
+            const list = document.getElementById('final-list');
+            list.innerHTML = '';
+            vtSigns.forEach(sign => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2';
+                li.innerHTML = `<span class="w-1.5 h-1.5 bg-purple-500 rounded-full flex-shrink-0"></span> ${sign}`;
+                list.appendChild(li);
+            });
+            
+            document.getElementById('success-modal').style.display = 'flex';
+            triggerConfetti();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
