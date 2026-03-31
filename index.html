@@ -3,403 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spot the Signs - Vicarious Trauma</title>
+    <title>Report or Not?</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root {
-            --brand-lavender: #C6B4D9;
-            --brand-purple: #513873;
-            --brand-deep: #413659;
-            --brand-light: #F6F5F8;
-            --brand-rose: #9C7F9D;
-            --success-green: #4ade80;
-            --error-red: #f87171;
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: #f6f5f8;
+            color: #413659;
+            overscroll-behavior-y: contain;
         }
 
-        body {
-            background-color: var(--brand-light);
-            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-            color: var(--brand-deep);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem;
-            touch-action: manipulation;
+        /* Target Zone Scrollability */
+        .zone-content {
+            max-height: 250px; /* Limits height so it doesn't push the page down forever */
+            overflow-y: auto;  /* Adds scrollbar if many items are dropped */
+            padding-right: 4px;
+            scrollbar-width: thin; /* Firefox */
+            scrollbar-color: #C6B4D9 transparent;
         }
+
+        /* Chrome/Safari Scrollbar styling */
+        .zone-content::-webkit-scrollbar { width: 6px; }
+        .zone-content::-webkit-scrollbar-thumb { background-color: #C6B4D9; border-radius: 10px; }
 
         .drop-zone {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            min-height: 140px;
-            border: 3px dashed var(--brand-lavender);
-            background: rgba(255, 255, 255, 0.6);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 1rem;
-            border-radius: 1.5rem;
-            width: 100%;
+            transition: all 0.3s ease;
+            min-height: 160px;
         }
 
         .drop-zone.drag-over {
-            background: var(--brand-lavender);
-            transform: scale(1.03);
+            background-color: #C6B4D9;
+            transform: scale(1.01);
             border-style: solid;
-            box-shadow: 0 10px 20px rgba(81, 56, 115, 0.1);
         }
 
-        .draggable-card {
+        /* Mobile Swipe Pool */
+        @media (max-width: 768px) {
+            #scenarios-pool {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                background: #f6f5f8;
+                padding: 10px 0;
+                border-bottom: 2px solid #e2e8f0;
+                display: flex;
+                overflow-x: auto;
+                gap: 10px;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+            }
+            .scenario-card {
+                flex: 0 0 85%;
+                scroll-snap-align: center;
+                min-width: 260px;
+            }
+        }
+
+        .scenario-card {
             cursor: grab;
+            transition: all 0.2s ease;
             user-select: none;
-            touch-action: none;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            background: white;
-            border-radius: 1.25rem;
-            box-shadow: 0 10px 25px rgba(65, 54, 89, 0.12);
-            border: 2px solid white;
-            padding: 1.5rem;
-            width: 100%;
-            max-width: 300px;
-            height: 120px;
-            font-weight: 700;
-            font-size: 1.125rem;
+            -webkit-user-select: none;
         }
 
-        .draggable-card:active {
-            cursor: grabbing;
+        /* Selected state for mobile tap */
+        .selected-card {
+            ring: 3px solid #513873;
+            outline: 2px solid #C6B4D9;
+            transform: translateY(-3px);
         }
 
-        .draggable-card.dragging {
-            opacity: 0.4;
-            transform: scale(0.9);
+        /* Dropped Card Styling (Tightened) */
+        .dropped-style {
+            margin-bottom: 4px !important; /* Removes excess space between dropped cards */
+            padding: 6px 8px !important;   /* Compact padding */
+            font-size: 0.85rem !important;
+            line-height: 1.2 !important;
         }
 
-        .correct-animation {
-            animation: successPulse 0.5s ease-out;
-        }
-
-        .wrong-animation {
-            animation: shake 0.4s ease-in-out;
-        }
-
-        @keyframes successPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.08); background-color: var(--success-green); color: white; border-color: var(--success-green); }
-            100% { transform: scale(1); }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-12px); border-color: var(--error-red); }
-            40% { transform: translateX(12px); }
-            60% { transform: translateX(-8px); }
-            80% { transform: translateX(8px); }
-        }
-
-        #success-modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(65, 54, 89, 0.96);
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            padding: 1.5rem;
-        }
-
-        .modal-pop {
-            animation: modalIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.8) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .btn-reset {
-            background: var(--brand-purple);
-            color: white;
-            padding: 0.85rem 2.5rem;
-            border-radius: 9999px;
-            font-weight: 700;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        @media (max-width: 640px) {
-            .drop-zone {
-                min-height: 110px;
-            }
-            .draggable-card {
-                height: 100px;
-                font-size: 1rem;
-                padding: 1rem;
-            }
-        }
-        
-        /* Specific iPad/Tablet sizing for the bins */
-        @media (min-width: 641px) and (max-width: 1024px) {
-            .drop-zone {
-                min-height: 160px;
-            }
-        }
+        .correct { background-color: #dcfce7 !important; border-color: #22c55e !important; }
+        .incorrect { background-color: #fee2e2 !important; border-color: #ef4444 !important; }
     </style>
 </head>
-<body class="overflow-x-hidden selection:bg-purple-100">
+<body class="p-4 md:p-6">
 
-    <div class="max-w-4xl w-full text-center mt-4 mb-8 px-4">
-        <h1 class="text-3xl md:text-4xl font-black uppercase mb-2 tracking-tight" style="color: var(--brand-purple);">Spot the Signs</h1>
-        <p class="text-gray-600 max-w-2xl mx-auto text-sm md:text-base">
-            Drag the cards from the bottom into the correct category at the top to classify workplace experiences.
-        </p>
-    </div>
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-[#513873]">Report or Not?</h1>
+            <p class="text-xs text-[#413659] mt-1">
+                <span class="hidden md:inline">Drag scenarios into the boxes.</span>
+                <span class="md:hidden">Tap a scenario, then tap a box below.</span>
+            </p>
+        </header>
 
-    <!-- Drop Bins (TOP) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-4xl px-4 mb-6">
-        <div id="bin-stress" class="drop-zone group touch-none">
-            <h2 class="font-bold text-lg uppercase tracking-wide opacity-70 group-hover:opacity-100 transition-opacity">Workplace Frustrations</h2>
-            <p class="text-xs text-gray-500">Common daily stressors</p>
-        </div>
+        <div id="scenarios-pool" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6"></div>
 
-        <div id="bin-vt" class="drop-zone group touch-none">
-            <h2 class="font-bold text-lg uppercase tracking-wide" style="color: var(--brand-purple);">Vicarious Trauma</h2>
-            <p class="text-xs text-gray-500">Signs requiring support</p>
-        </div>
-    </div>
-
-    <!-- Progress Bar -->
-    <div class="mb-10 flex flex-col items-center gap-3 w-full max-w-sm px-4">
-        <div class="flex justify-between w-full text-[10px] font-black uppercase tracking-widest opacity-50">
-            <span>Progress</span>
-            <span id="progress-percent">0%</span>
-        </div>
-        <div class="h-3 w-full bg-gray-200 rounded-full overflow-hidden shadow-inner">
-            <div id="progress-bar" class="h-full bg-purple-600 transition-all duration-500 ease-out" style="width: 0%"></div>
-        </div>
-    </div>
-
-    <!-- Active Card Display (BOTTOM) -->
-    <div class="flex flex-col items-center w-full px-4 mb-12">
-        <div class="text-xs font-bold uppercase tracking-widest opacity-40 mb-4">Current Tile</div>
-        <div id="deck-container" class="relative w-full max-w-sm h-32 flex items-center justify-center">
-            <div id="card-display" class="w-full h-full flex items-center justify-center">
-                <!-- Card injected here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Completion Modal -->
-    <div id="success-modal">
-        <div class="bg-white p-6 md:p-8 rounded-[2rem] max-w-md w-full text-center shadow-2xl mx-4 modal-pop overflow-y-auto max-h-[90vh]">
-            <h2 class="text-3xl md:text-4xl font-black mb-3" style="color: var(--brand-purple);">Well done!</h2>
-            <p class="text-gray-600 mb-6 md:mb-8 leading-relaxed text-sm md:text-base">You've successfully distinguished between everyday workplace frustrations and the signs of Vicarious Trauma.</p>
-            
-            <div class="bg-purple-50 p-4 md:p-5 rounded-2xl text-left mb-6 md:mb-8 border border-purple-100">
-                <h3 class="font-bold text-xs uppercase text-purple-800 mb-3 tracking-widest">Vicarious Trauma Indicators:</h3>
-                <ul id="final-list" class="text-sm space-y-2 text-purple-900 font-medium">
-                    <!-- List items injected -->
-                </ul>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div id="zone-report" class="drop-zone border-4 border-dashed border-[#513873] rounded-xl p-3 flex flex-col bg-white shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                <div class="self-center bg-[#513873] text-white px-3 py-0.5 rounded-full text-[10px] font-bold mb-3 uppercase tracking-wider">Report Required</div>
+                <div class="zone-content w-full flex flex-col"></div>
             </div>
 
-            <button onclick="location.reload()" class="btn-reset">Start Over</button>
+            <div id="zone-no-report" class="drop-zone border-4 border-dashed border-[#9C7F9D] rounded-xl p-3 flex flex-col bg-white shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
+                <div class="self-center bg-[#9C7F9D] text-white px-3 py-0.5 rounded-full text-[10px] font-bold mb-3 uppercase tracking-wider">No Report Needed</div>
+                <div class="zone-content w-full flex flex-col"></div>
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <div id="feedback-message" class="text-lg font-bold mb-4 min-h-[24px]"></div>
+            <button onclick="resetActivity()" class="bg-[#413659] text-white font-bold py-2 px-8 rounded-lg shadow-md active:scale-95 text-sm transition-transform">
+                Reset Activity
+            </button>
         </div>
     </div>
 
     <script>
-        const vtSigns = [
-            "Overthinking",
-            "Feeling numb",
-            "Broken trust",
-            "Avoiding teams",
-            "Always jumpy"
+        const scenarios = [
+            { id: 1, text: "A family member makes threats at the workplace counter.", category: "report" },
+            { id: 2, text: "An employee asks for 10 days of paid domestic violence leave.", category: "report" },
+            { id: 3, text: "Abusive text messages are sent to a work phone.", category: "report" },
+            { id: 4, text: "A colleague says they are 'having a hard time' (no risks).", category: "no-report" },
+            { id: 5, text: "You hear a rumour that someone is experiencing violence.", category: "no-report" },
+            { id: 6, text: "Staff member talks about a past event that is resolved.", category: "no-report" }
         ];
 
-        const distractions = [
-            "Need coffee",
-            "Too many emails",
-            "Slow laptop",
-            "Inbox full",
-            "Roster shift"
-        ];
-
-        let deck = [];
-        let currentCardIndex = 0;
-        let stats = { stress: 0, vt: 0 };
-        let totalItems = 0;
+        let selectedCard = null;
 
         function init() {
-            const items = [
-                ...vtSigns.map(text => ({ text, type: 'vt' })),
-                ...distractions.map(text => ({ text, type: 'stress' }))
-            ];
-            deck = items.sort(() => Math.random() - 0.5);
-            totalItems = deck.length;
-            
-            renderCard();
-            setupDropZones();
+            const pool = document.getElementById('scenarios-pool');
+            pool.innerHTML = '';
+            selectedCard = null;
+            [...scenarios].sort(() => Math.random() - 0.5).forEach(s => {
+                const card = document.createElement('div');
+                card.id = `card-${s.id}`;
+                card.className = "scenario-card bg-white p-3 rounded-lg shadow border border-gray-200 text-center font-medium text-sm";
+                card.draggable = true;
+                card.innerText = s.text;
+                card.dataset.category = s.category;
+                card.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                    e.target.classList.add('opacity-40');
+                });
+                card.addEventListener('dragend', e => e.target.classList.remove('opacity-40'));
+                card.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (selectedCard) selectedCard.classList.remove('selected-card');
+                    if (selectedCard !== card) {
+                        selectedCard = card;
+                        card.classList.add('selected-card');
+                    } else {
+                        selectedCard = null;
+                    }
+                });
+                pool.appendChild(card);
+            });
+            document.querySelectorAll('.zone-content').forEach(z => z.innerHTML = '');
+            document.getElementById('feedback-message').innerText = '';
         }
 
-        function renderCard() {
-            const display = document.getElementById('card-display');
-            display.innerHTML = '';
-            
-            if (currentCardIndex >= deck.length) {
-                showComplete();
-                return;
-            }
-
-            const item = deck[currentCardIndex];
-            const card = document.createElement('div');
-            card.className = 'draggable-card';
-            card.id = 'current-card';
-            card.draggable = true;
-            card.innerText = item.text;
-            card.dataset.type = item.type;
-
-            card.addEventListener('dragstart', (e) => {
-                card.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', item.type);
-            });
-
-            card.addEventListener('dragend', () => {
-                card.classList.remove('dragging');
-            });
-
-            let touchStartX, touchStartY;
-            card.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                touchStartX = touch.clientX;
-                touchStartY = touch.clientY;
-            }, { passive: true });
-
-            card.addEventListener('touchend', (e) => {
-                const touch = e.changedTouches[0];
-                const binStress = document.getElementById('bin-stress').getBoundingClientRect();
-                const binVT = document.getElementById('bin-vt').getBoundingClientRect();
-                
-                const isOverBin = (rect) => {
-                    return touch.clientX > rect.left && 
-                           touch.clientX < rect.right && 
-                           touch.clientY > rect.top && 
-                           touch.clientY < rect.bottom;
-                };
-
-                if (isOverBin(binStress)) {
-                    handleDrop('stress');
-                } else if (isOverBin(binVT)) {
-                    handleDrop('vt');
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('click', () => {
+                if (selectedCard) {
+                    processMove(selectedCard, zone.id === 'zone-report' ? 'report' : 'no-report');
+                    selectedCard = null;
                 }
             });
+        });
 
-            display.appendChild(card);
+        function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+        function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+        function drop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const cardId = e.dataTransfer.getData('text/plain');
+            processMove(document.getElementById(cardId), e.currentTarget.id === 'zone-report' ? 'report' : 'no-report');
         }
 
-        function setupDropZones() {
-            const zones = [
-                { id: 'bin-stress', type: 'stress' },
-                { id: 'bin-vt', type: 'vt' }
-            ];
-
-            zones.forEach(zoneData => {
-                const zone = document.getElementById(zoneData.id);
-
-                zone.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    zone.classList.add('drag-over');
-                });
-
-                zone.addEventListener('dragleave', () => {
-                    zone.classList.remove('drag-over');
-                });
-
-                zone.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    handleDrop(zoneData.type);
-                });
-                
-                zone.addEventListener('click', () => {
-                    handleDrop(zoneData.type);
-                });
-            });
-        }
-
-        function handleDrop(droppedType) {
-            const item = deck[currentCardIndex];
-            const cardElement = document.getElementById('current-card');
-            if (!cardElement) return;
+        function processMove(card, zoneType) {
+            const targetZone = document.getElementById(`zone-${zoneType}`).querySelector('.zone-content');
+            card.classList.remove('selected-card', 'opacity-40');
+            card.draggable = false;
+            card.onclick = null;
+            card.className = `scenario-card dropped-style border-2 rounded-md text-center font-bold ${card.dataset.category === zoneType ? 'correct' : 'incorrect'}`;
+            targetZone.appendChild(card);
             
-            if (item.type === droppedType) {
-                stats[droppedType]++;
-                cardElement.classList.add('correct-animation');
-                
-                setTimeout(() => {
-                    currentCardIndex++;
-                    updateUI();
-                    renderCard();
-                }, 400);
-            } else {
-                cardElement.classList.add('wrong-animation');
-                setTimeout(() => {
-                    cardElement.classList.remove('wrong-animation');
-                }, 400);
-            }
-        }
-
-        function updateUI() {
-            const progress = (currentCardIndex / totalItems) * 100;
-            const bar = document.getElementById('progress-bar');
-            if (bar) bar.style.width = `${progress}%`;
-            const text = document.getElementById('progress-percent');
-            if (text) text.innerText = `${Math.round(progress)}%`;
-        }
-
-        function triggerConfetti() {
-            const duration = 5 * 1000;
-            const animationEnd = Date.now() + duration;
-            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 999 };
-
-            function randomInRange(min, max) {
-              return Math.random() * (max - min) + min;
-            }
-
-            const interval = setInterval(function() {
-              const timeLeft = animationEnd - Date.now();
-
-              if (timeLeft <= 0) {
-                return clearInterval(interval);
-              }
-
-              const particleCount = 50 * (timeLeft / duration);
-              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-              confetti(Object.assign({}, defaults, { particleCount: particleCount / 2, origin: { x: 0.5, y: -0.1 } }));
-            }, 250);
-        }
-
-        function showComplete() {
-            const list = document.getElementById('final-list');
-            list.innerHTML = '';
-            vtSigns.forEach(sign => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center gap-2';
-                li.innerHTML = `<span class="w-1.5 h-1.5 bg-purple-500 rounded-full flex-shrink-0"></span> ${sign}`;
-                list.appendChild(li);
-            });
+            // Auto-scroll to bottom of zone when new card added
+            targetZone.scrollTop = targetZone.scrollHeight;
             
-            document.getElementById('success-modal').style.display = 'flex';
-            triggerConfetti();
+            showFeedback(card.dataset.category === zoneType ? "Correct!" : "Incorrect.", card.dataset.category === zoneType ? "text-green-600" : "text-red-600");
+            checkCompletion();
+        }
+
+        function showFeedback(msg, color) {
+            const fb = document.getElementById('feedback-message');
+            fb.innerText = msg;
+            fb.className = `text-lg font-bold mb-4 ${color}`;
+            setTimeout(() => { if (fb.innerText === msg) fb.innerText = ''; }, 1200);
+        }
+
+        function checkCompletion() {
+            if (document.getElementById('scenarios-pool').children.length === 0) {
+                const mistakes = document.querySelectorAll('.incorrect').length;
+                const fb = document.getElementById('feedback-message');
+                fb.className = "text-xl font-bold mb-4 text-[#513873]";
+                fb.innerText = mistakes === 0 ? "Perfect Score!" : `Finished! Score: ${scenarios.length - mistakes}/${scenarios.length}`;
+            }
         }
 
         window.onload = init;
+        function resetActivity() { init(); }
     </script>
 </body>
 </html>
