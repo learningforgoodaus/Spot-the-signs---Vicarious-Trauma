@@ -10,101 +10,112 @@
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
             background-color: #f6f5f8;
             color: #413659;
-            /* Prevents pull-to-refresh gestures during the game */
             overscroll-behavior-y: contain;
         }
 
+        /* Target Zone Container */
         .drop-zone {
+            display: flex;
+            flex-direction: column;
             transition: all 0.3s ease;
-            min-height: 140px;
+            min-height: 180px;
+            background: white;
         }
 
-        .drop-zone.drag-over {
-            background-color: #C6B4D9;
-            transform: scale(1.02);
-        }
-
-        /* Mobile specific layout for the pool */
+        /* MOBILE ONLY: Fixed height and scroll for category boxes */
         @media (max-width: 768px) {
+            .zone-content {
+                height: 180px; /* Fixed height for mobile */
+                overflow-y: scroll !important; /* Force scrollbar */
+                -webkit-overflow-scrolling: touch;
+                padding: 5px;
+                border: 1px inset #f0f0f0;
+                border-radius: 8px;
+            }
+            
             #scenarios-pool {
                 position: sticky;
                 top: 0;
                 z-index: 50;
                 background: #f6f5f8;
                 padding: 10px 0;
-                border-bottom: 2px solid #ddd;
-                margin-bottom: 1.5rem;
                 display: flex;
                 overflow-x: auto;
-                gap: 12px;
-                scroll-snap-type: x mandatory;
-                -webkit-overflow-scrolling: touch;
+                gap: 10px;
+                border-bottom: 2px solid #ddd;
             }
-            
+
             .scenario-card {
-                flex: 0 0 85%;
-                scroll-snap-align: center;
-                min-width: 250px;
+                flex: 0 0 80%;
+                min-width: 240px;
             }
+        }
+
+        /* Desktop view: Normal auto-height */
+        @media (min-width: 769px) {
+            .zone-content {
+                min-height: 120px;
+            }
+        }
+
+        /* Dropped Card: Compact & Contained */
+        .dropped-card {
+            margin: 2px 0 !important;
+            padding: 6px 10px !important;
+            font-size: 0.8rem !important;
+            line-height: 1.2;
+            width: 100% !important;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: block;
         }
 
         .scenario-card {
             cursor: grab;
-            transition: all 0.2s ease;
-            font-size: 0.95rem;
+            transition: transform 0.2s;
             user-select: none;
-            -webkit-user-select: none;
         }
 
-        /* The 'Selected' state for mobile tapping */
         .selected-card {
-            ring: 4px solid #513873;
-            outline: 3px solid #C6B4D9;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            z-index: 10;
+            ring: 3px solid #513873;
+            transform: scale(0.98);
+            opacity: 0.8;
         }
 
-        .correct {
-            background-color: #dcfce7 !important;
-            border-color: #22c55e !important;
-        }
-
-        .incorrect {
-            background-color: #fee2e2 !important;
-            border-color: #ef4444 !important;
-        }
+        .correct { background-color: #dcfce7 !important; border-color: #22c55e !important; color: #166534; }
+        .incorrect { background-color: #fee2e2 !important; border-color: #ef4444 !important; color: #991b1b; }
+        
+        /* Custom scrollbar for better visibility on mobile */
+        .zone-content::-webkit-scrollbar { width: 6px; }
+        .zone-content::-webkit-scrollbar-thumb { background: #C6B4D9; border-radius: 10px; }
     </style>
 </head>
-<body class="p-4 md:p-6">
+<body class="p-4 md:p-10">
 
     <div class="max-w-4xl mx-auto">
         <header class="text-center mb-6">
-            <h1 class="text-2xl font-bold text-[#513873] mb-1">Report or Not?</h1>
-            <p class="text-sm text-[#413659] italic">
-                <span class="hidden md:inline">Drag scenarios into the boxes.</span>
-                <span class="md:hidden">Tap a card, then tap the correct box.</span>
-            </p>
+            <h1 class="text-2xl font-bold text-[#513873]">Report or Not?</h1>
+            <p class="text-xs text-[#413659] mt-1 italic">Tap card, then tap box.</p>
         </header>
 
-        <div id="scenarios-pool" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-            </div>
+        <div id="scenarios-pool" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6"></div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div id="zone-report" class="drop-zone border-4 border-dashed border-[#513873] rounded-xl p-4 flex flex-col items-center bg-white shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                <div class="bg-[#513873] text-white px-3 py-1 rounded-full text-xs font-bold mb-3 uppercase tracking-wider">Report Required</div>
-                <div class="zone-content w-full flex flex-col gap-2"></div>
+            <div id="zone-report" class="drop-zone border-4 border-dashed border-[#513873] rounded-2xl p-4 shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="bg-[#513873] text-white px-3 py-1 rounded-full text-[10px] font-bold mb-3 uppercase self-center">Report Required</div>
+                <div class="zone-content w-full flex flex-col"></div>
             </div>
 
-            <div id="zone-no-report" class="drop-zone border-4 border-dashed border-[#9C7F9D] rounded-xl p-4 flex flex-col items-center bg-white shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)">
-                <div class="bg-[#9C7F9D] text-white px-3 py-1 rounded-full text-xs font-bold mb-3 uppercase tracking-wider">No Report Needed</div>
-                <div class="zone-content w-full flex flex-col gap-2"></div>
+            <div id="zone-no-report" class="drop-zone border-4 border-dashed border-[#9C7F9D] rounded-2xl p-4 shadow-sm" ondrop="drop(event)" ondragover="allowDrop(event)">
+                <div class="bg-[#9C7F9D] text-white px-3 py-1 rounded-full text-[10px] font-bold mb-3 uppercase self-center">No Report Needed</div>
+                <div class="zone-content w-full flex flex-col"></div>
             </div>
         </div>
 
         <div class="mt-8 text-center">
-            <div id="feedback-message" class="text-lg font-bold mb-4 min-h-[28px] transition-all duration-300"></div>
-            <button onclick="resetActivity()" class="bg-[#413659] hover:bg-[#513873] text-white font-bold py-3 px-8 rounded-lg transition-colors shadow-md text-sm active:scale-95">
+            <div id="feedback-message" class="text-lg font-bold mb-4 min-h-[24px]"></div>
+            <button onclick="resetActivity()" class="bg-[#413659] hover:bg-[#513873] text-white font-bold py-3 px-10 rounded-xl transition-all active:scale-95 shadow-md">
                 Reset Activity
             </button>
         </div>
@@ -126,149 +137,87 @@
             const pool = document.getElementById('scenarios-pool');
             pool.innerHTML = '';
             selectedCard = null;
-            
-            // Re-shuffling
-            const shuffled = [...scenarios].sort(() => Math.random() - 0.5);
-
-            shuffled.forEach(s => {
+            [...scenarios].sort(() => Math.random() - 0.5).forEach(s => {
                 const card = document.createElement('div');
                 card.id = `card-${s.id}`;
-                card.className = "scenario-card bg-white p-4 rounded-lg shadow-md border border-gray-200 text-center font-medium";
+                card.className = "scenario-card bg-white p-4 rounded-xl shadow-md border border-gray-200 text-center font-medium text-sm";
                 card.draggable = true;
                 card.innerText = s.text;
                 card.dataset.category = s.category;
                 
-                // Mouse Events
-                card.addEventListener('dragstart', dragStart);
-                card.addEventListener('dragend', dragEnd);
-                
-                // Touch/Click Events
+                card.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', e.target.id);
+                    e.target.classList.add('opacity-40');
+                });
+
                 card.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    handleCardClick(card);
+                    if (selectedCard) selectedCard.classList.remove('selected-card');
+                    if (selectedCard !== card) {
+                        selectedCard = card;
+                        card.classList.add('selected-card');
+                    } else {
+                        selectedCard = null;
+                    }
                 });
-                
                 pool.appendChild(card);
             });
-
             document.querySelectorAll('.zone-content').forEach(z => z.innerHTML = '');
             document.getElementById('feedback-message').innerText = '';
         }
 
-        function handleCardClick(card) {
-            // If clicking the same card, deselect it
-            if (selectedCard === card) {
-                card.classList.remove('selected-card');
-                selectedCard = null;
-                return;
-            }
-
-            // If a different card was selected, clean it up
-            if (selectedCard) {
-                selectedCard.classList.remove('selected-card');
-            }
-
-            selectedCard = card;
-            card.classList.add('selected-card');
-            
-            // Small vibration for mobile feedback if supported
-            if (window.navigator.vibrate) window.navigator.vibrate(10);
-        }
-
-        // Handle clicking the drop zones
         document.querySelectorAll('.drop-zone').forEach(zone => {
             zone.addEventListener('click', () => {
                 if (selectedCard) {
-                    const zoneType = zone.id === 'zone-report' ? 'report' : 'no-report';
-                    processDrop(selectedCard, zoneType);
+                    processMove(selectedCard, zone.id === 'zone-report' ? 'report' : 'no-report');
                     selectedCard = null;
                 }
             });
         });
 
-        // Desktop Drag Functions
-        function dragStart(e) {
-            e.dataTransfer.setData('text/plain', e.target.id);
-            e.target.classList.add('dragging');
-        }
-
-        function dragEnd(e) {
-            e.target.classList.remove('dragging');
-        }
-
-        function allowDrop(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('drag-over');
-        }
-
-        function dragLeave(e) {
-            e.currentTarget.classList.remove('drag-over');
-        }
-
+        function allowDrop(e) { e.preventDefault(); }
         function drop(e) {
             e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
             const cardId = e.dataTransfer.getData('text/plain');
-            const card = document.getElementById(cardId);
-            const zoneType = e.currentTarget.id === 'zone-report' ? 'report' : 'no-report';
-            processDrop(card, zoneType);
+            const targetZone = e.currentTarget.id === 'zone-report' ? 'report' : 'no-report';
+            processMove(document.getElementById(cardId), targetZone);
         }
 
-        function processDrop(card, zoneType) {
-            const correctCategory = card.dataset.category;
-            const targetZone = zoneType === 'report' ? document.getElementById('zone-report') : document.getElementById('zone-no-report');
-            const zoneContent = targetZone.querySelector('.zone-content');
-
-            // Remove selection styling
-            card.classList.remove('selected-card');
+        function processMove(card, zoneType) {
+            const targetZoneContent = document.getElementById(`zone-${zoneType}`).querySelector('.zone-content');
+            card.classList.remove('selected-card', 'opacity-40', 'p-4', 'shadow-md', 'rounded-xl');
             
-            // Move card
-            zoneContent.appendChild(card);
+            // Apply compact dropped styling
             card.draggable = false;
-            card.onclick = null; // Disable clicks once placed
-            card.className = "scenario-card p-2 rounded-lg border-2 text-center text-xs font-bold w-full mb-1 animate-pulse";
-
-            if (zoneType === correctCategory) {
-                card.classList.add('correct');
-                showFeedback("Correct!", "text-green-600");
-            } else {
-                card.classList.add('incorrect');
-                showFeedback("Not quite.", "text-red-600");
-            }
+            card.onclick = null;
+            card.className = `dropped-card border-2 rounded-lg text-center font-bold ${card.dataset.category === zoneType ? 'correct' : 'incorrect'}`;
             
-            setTimeout(() => card.classList.remove('animate-pulse'), 500);
+            targetZoneContent.appendChild(card);
+            
+            // Auto-scroll the box to show the latest drop
+            targetZoneContent.scrollTop = targetZoneContent.scrollHeight;
+            
+            showFeedback(card.dataset.category === zoneType ? "Correct!" : "Incorrect.", card.dataset.category === zoneType ? "text-green-600" : "text-red-600");
             checkCompletion();
         }
 
-        function showFeedback(msg, colorClass) {
+        function showFeedback(msg, color) {
             const fb = document.getElementById('feedback-message');
             fb.innerText = msg;
-            fb.className = `text-lg font-bold mb-4 min-h-[28px] ${colorClass} scale-110`;
-            setTimeout(() => { 
-                if (fb.innerText === msg) {
-                    fb.innerText = ''; 
-                    fb.className = "text-lg font-bold mb-4 min-h-[28px]";
-                }
-            }, 1200);
+            fb.className = `text-lg font-bold mb-4 ${color}`;
+            setTimeout(() => { if (fb.innerText === msg) fb.innerText = ''; }, 1200);
         }
 
         function checkCompletion() {
-            const pool = document.getElementById('scenarios-pool');
-            if (pool.children.length === 0) {
-                const incorrect = document.querySelectorAll('.incorrect').length;
+            if (document.getElementById('scenarios-pool').children.length === 0) {
                 const fb = document.getElementById('feedback-message');
-                if (incorrect === 0) {
-                    fb.innerText = "Excellent! You've correctly identified all scenarios.";
-                    fb.className = "text-xl font-bold mb-4 text-[#513873]";
-                } else {
-                    fb.innerText = `Activity Complete! Score: ${scenarios.length - incorrect} / ${scenarios.length}`;
-                    fb.className = "text-xl font-bold mb-4 text-[#413659]";
-                }
+                fb.className = "text-xl font-bold mb-4 text-[#513873]";
+                fb.innerText = "Activity Complete!";
             }
         }
 
-        function resetActivity() { init(); }
         window.onload = init;
+        function resetActivity() { init(); }
     </script>
 </body>
 </html>
